@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dogi — get paid from any chain, with just a link
 
-## Getting Started
+**UXmaxx Hackathon submission · Universal Accounts Track**
 
-First, run the development server:
+Dogi turns cross-chain payments into something anyone can do — two products on the
+same rails:
+
+1. **Coffee page** — a Buy-me-a-coffee-style page for creators. Fans pick 1, 3, or 5
+   coffees, add a note, log in with email, and pay in one tap.
+2. **Payment links** — invoices and one-off requests ("$25 — Invoice #42") shared as
+   a link.
+
+In both cases the payer logs in with their **email** (no wallet app, no seed phrase)
+and pays with **whatever they hold on any chain** — ETH on Base, SOL on Solana, USDT
+on BNB Chain. The recipient always receives **USDC on Arbitrum**. Routing, bridging,
+swapping, and gas are invisible.
+
+## How it works
+
+- **Magic embedded wallet** — email OTP login creates a non-custodial EOA. No extension,
+  no seed phrase. (Magic Labs bonus challenge)
+- **Particle Universal Accounts in EIP-7702 mode** — the user's EOA is upgraded
+  *in place* into a chain-abstracted Universal Account. Same address, no migration, no
+  smart-account deployment. One balance across Ethereum, Base, Arbitrum, BNB Chain,
+  X Layer, and Solana. (Universal Accounts Track requirement)
+- **Cross-chain value transfer** — paying a link calls
+  `createTransferTransaction()` for USDC on **Arbitrum**; the SDK sources liquidity
+  from whatever primary assets the payer holds on any chain and settles on Arbitrum.
+  (Arbitrum bounty: Arbitrum is the settlement layer, invisible to the user)
+
+### The EIP-7702 flow
+
+1. `magic.auth.loginWithEmailOTP()` → embedded EOA
+2. `new UniversalAccount({ smartAccountOptions: { useEIP7702: true, ownerAddress } })`
+   → the EOA *is* the Universal Account
+3. First payment: `magic.wallet.sign7702Authorization()` +
+   `magic.wallet.send7702Transaction()` delegate the EOA to Particle's UA contract on
+   Arbitrum (Type-4 transaction). Inline authorizations cover any other chains the
+   route touches.
+4. `ua.createTransferTransaction()` → sign one `rootHash` → `ua.sendTransaction()`
+
+Key files:
+
+| File | What it does |
+|---|---|
+| `src/providers/MagicProvider.tsx` | Magic SDK setup, email OTP login, session restore |
+| `src/providers/UniversalAccountProvider.tsx` | UA init (7702 mode), unified balance, delegation, cross-chain pay |
+| `src/app/dashboard/page.tsx` | Unified balance + coffee page setup + payment links |
+| `src/app/tip/[code]/page.tsx` | Public creator page: buy 1/3/5 coffees cross-chain |
+| `src/app/pay/[code]/page.tsx` | The pay page: log in with email → one-tap cross-chain payment |
+| `src/lib/links.ts`, `src/lib/creator.ts` | Links and creator pages are self-contained — payload encoded in the URL, no backend |
+
+## Run it
 
 ```bash
+npm install
+cp .env.example .env.local   # add your keys (see below)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Keys
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Where to get it |
+|---|---|
+| `NEXT_PUBLIC_MAGIC_API_KEY` | [dashboard.magic.link](https://dashboard.magic.link) → publishable API key (Dedicated Wallet) |
+| `NEXT_PUBLIC_PARTICLE_PROJECT_ID` | [dashboard.particle.network](https://dashboard.particle.network) → project settings |
+| `NEXT_PUBLIC_PARTICLE_CLIENT_KEY` | same project |
+| `NEXT_PUBLIC_PARTICLE_APP_ID` | same project (create a Web app) |
 
-## Learn More
+### Demo flow
 
-To learn more about Next.js, take a look at the following resources:
+1. Log in with your email on the landing page.
+2. Fund the account: send any supported token (ETH / USDC / USDT / BNB / SOL) on any
+   supported chain to the address shown in the header.
+3. On the dashboard, create your coffee page (name, avatar, price) and/or a payment
+   link — both give you a shareable URL.
+4. Open the URL (incognito or another device), log in with a *different* email, and
+   buy a few coffees or pay the invoice.
+5. The receiver gets USDC on Arbitrum; the payer's balance updates across chains.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 ·
+`magic-sdk` + `@magic-ext/evm` · `@particle-network/universal-account-sdk` v2 · ethers 6
 
-## Deploy on Vercel
+## Notes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Payment links are fully client-side: the payload (receiver, amount, note) is
+  base64url-encoded in the URL, so there's no backend or database to trust.
+- EIP-7702 mode requires an embedded wallet that can sign Type-4 authorizations —
+  that's why Magic is used rather than a JSON-RPC wallet like MetaMask.
+- The UA SDK's package.json "exports" map lacks a "types" condition, so TypeScript
+  can't see its declarations. `src/types/universal-account-sdk.d.ts` declares the
+  subset of the SDK's API this app uses. (Don't map the package in tsconfig
+  `paths` — Turbopack applies those mappings at runtime and would import the
+  `.d.ts`, breaking the app.)
+- Universal Accounts SDK v2 supported chains: Ethereum, Base, Arbitrum, BNB Chain,
+  X Layer, Solana. Primary assets: ETH, USDC, USDT, BNB, SOL.
