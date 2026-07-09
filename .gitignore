@@ -38,6 +38,7 @@ yarn-error.log*
 tscheck-tmp.ts
 /mascot.gif
 /sprites.jpg
+/treat.png
 .venv-ppt/
 
 # vercel

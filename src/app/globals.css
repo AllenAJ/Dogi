@@ -67,6 +67,30 @@ html {
   .hero-stagger-4 { animation-delay: 0.26s; }
   .hero-stagger-5 { animation-delay: 0.34s; }
   .hero-stagger-6 { animation-delay: 0.42s; }
+
+  .sprite-decor-bg {
+    animation: sprite-decor-bg-in 0.7s ease both;
+  }
+
+  .sprite-decor-enter-left {
+    animation: sprite-decor-enter-left 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: var(--enter-delay, 0ms);
+  }
+
+  .sprite-decor-enter-right {
+    animation: sprite-decor-enter-right 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: var(--enter-delay, 0ms);
+  }
+
+  .sprite-decor-drift-a {
+    animation: sprite-decor-drift-a 7s ease-in-out infinite;
+    animation-delay: var(--float-delay, 0.55s);
+  }
+
+  .sprite-decor-drift-b {
+    animation: sprite-decor-drift-b 8.5s ease-in-out infinite;
+    animation-delay: var(--float-delay, 0.55s);
+  }
 }
 
 @keyframes float {
@@ -98,6 +122,57 @@ html {
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes sprite-decor-bg-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sprite-decor-enter-left {
+  from {
+    opacity: 0;
+    transform: translateX(-28px) scale(0.9);
+  }
+  to {
+    opacity: 0.2;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes sprite-decor-enter-right {
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(0.9);
+  }
+  to {
+    opacity: 0.2;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes sprite-decor-drift-a {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes sprite-decor-drift-b {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(4px, -5px);
   }
 }
 

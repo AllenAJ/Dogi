@@ -6,6 +6,7 @@ import { useMagic } from "@/providers/MagicProvider";
 import { EmailLogin } from "@/components/EmailLogin";
 import { CreatorAvatar } from "@/components/CreatorAvatar";
 import { LoadingDog, Logo } from "@/components/Mascot";
+import { Treat } from "@/components/Treat";
 import { SpriteIcon } from "@/components/Sprite";
 import { ActivityCard, type ActivityCardData } from "@/components/ActivityCard";
 import { ScrollReveal } from "@/components/ScrollReveal";
@@ -19,7 +20,7 @@ const HERO_SIDE: SideCard[] = [
     variant: "supporter",
     name: "Sofia · new supporter",
     detail: "paid with SOL, from Solana",
-    message: "☕☕☕ bought Allen 3 coffees",
+    message: "sent Allen 3 treats",
     amount: 15,
     rotate: -6,
     float: "slow",
@@ -40,7 +41,7 @@ const LOGIN_SIDE: SideCard[] = [
     variant: "supporter",
     name: "Marcus · just paid",
     detail: "paid with USDC, from Ethereum",
-    message: "☕☕ sent 2 coffees",
+    message: "sent 2 treats",
     amount: 10,
     rotate: -4,
     float: "slow",
@@ -120,7 +121,7 @@ export default function Home() {
             </span>
           </h1>
           <p className="hero-stagger hero-stagger-3 mt-6 max-w-xl text-lg text-muted">
-            A coffee page for your fans and payment links for everything else. People
+            A treat page for your fans and payment links for everything else. People
             pay with whatever they hold, on any chain. You always receive USDC on
             Arbitrum. They just log in with email.
           </p>
@@ -164,15 +165,16 @@ export default function Home() {
               <ScrollReveal direction="left" delayMs={80}>
                 <div className="rounded-3xl border border-border bg-background p-6 sm:p-8">
                   <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-bold">
-                    ☕ Coffee page
+                    <Treat size={16} />
+                    Treat page
                   </span>
                   <h3 className="mt-4 text-2xl font-bold tracking-tight">
                     Give fans an easy way to say thanks.
                   </h3>
                   <p className="mt-2 text-sm text-muted">
-                    A Buy-me-a-coffee-style page with your name, avatar, and price. Fans
-                    pick 1, 3, or 5 coffees, leave a note, and pay in one tap from any
-                    chain, with any token.
+                    A simple treat page with your name, avatar, and price. Fans pick 1,
+                    3, or 5 treats, leave a note, and pay in one tap from any chain, with
+                    any token.
                   </p>
                   <div className="mt-6 rounded-2xl border border-border bg-surface p-5 shadow-lg shadow-border/40">
                     <div className="flex items-center gap-3">
@@ -183,7 +185,7 @@ export default function Home() {
                       </div>
                     </div>
                     <div className="mt-4 flex items-center gap-2 rounded-xl border border-accent bg-accent/15 p-3">
-                      <span className="text-xl" aria-hidden="true">☕</span>
+                      <Treat size={24} />
                       <span className="text-xs text-muted" aria-hidden="true">×</span>
                       {[1, 3, 5].map((n, i) => (
                         <span
@@ -253,7 +255,7 @@ export default function Home() {
                 {
                   sprite: "stepShare" as const,
                   title: "Share your link",
-                  body: "Your coffee page or a payment link. Send it to fans, clients, friends, anyone.",
+                  body: "Your treat page or a payment link. Send it to fans, clients, friends, anyone.",
                 },
                 {
                   sprite: "stepPay" as const,

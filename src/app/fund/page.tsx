@@ -42,7 +42,7 @@ export default function FundPage() {
       <section className="w-full max-w-2xl rounded-3xl border border-border bg-surface p-6 shadow-xl shadow-border/60 sm:p-8">
         <h1 className="text-2xl font-extrabold tracking-tight">Add funds</h1>
         <p className="mt-2 text-sm text-muted">
-          Top up once, then Dogi can pay invoices or coffee links from your unified balance.
+          Top up once, then Dogi can pay invoices or treat links from your unified balance.
         </p>
         <p className="mt-1 text-xs text-muted">
           Settlement network: {SETTLEMENT_CHAIN_LABEL}

@@ -6,6 +6,8 @@ import { useMagic } from "@/providers/MagicProvider";
 import { useUniversalAccount } from "@/providers/UniversalAccountProvider";
 import { EmailLogin } from "@/components/EmailLogin";
 import { InlineDog, LoadingDog, Logo, Mascot } from "@/components/Mascot";
+import { Treat } from "@/components/Treat";
+import { SpritePageDecor } from "@/components/SpritePageDecor";
 import { CreatorAvatar } from "@/components/CreatorAvatar";
 import { decodeCreatorPage } from "@/lib/creator";
 import { formatUsd, shortAddress } from "@/lib/format";
@@ -93,12 +95,14 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
       <div className="p-6 sm:p-8">
         {state.step === "done" ? (
           <div className="text-center pop-in">
-            <Mascot size={96} className="mx-auto" />
-            <p className="text-3xl" aria-hidden="true">
-              {"☕".repeat(Math.min(state.count, 5))}
-            </p>
+            <Treat size={72} className="mx-auto" />
+            <div className="mt-3 flex justify-center gap-1.5" aria-hidden="true">
+              {Array.from({ length: Math.min(state.count, 5) }).map((_, i) => (
+                <Treat key={i} size={32} />
+              ))}
+            </div>
             <h2 className="mt-3 text-xl font-bold">
-              You bought {creator.name} {state.count} coffee{state.count > 1 ? "s" : ""}!
+              You sent {creator.name} {state.count} treat{state.count > 1 ? "s" : ""}!
             </h2>
             <p className="mt-1 text-sm text-muted">
               {formatUsd(state.count * creator.price)} is on its way as USDC on {SETTLEMENT_CHAIN_LABEL}.
@@ -121,22 +125,19 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
                 href="/"
                 className="text-xs text-muted underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Start your own coffee page. It&apos;s free
+                Start your own treat page. It&apos;s free
               </Link>
             </div>
           </div>
         ) : (
           <>
-            <h2 className="text-lg font-bold">
-              Buy {creator.name} a coffee{" "}
-              <span aria-hidden="true">☕</span>
+            <h2 className="flex items-center gap-2 text-lg font-bold">
+              Send {creator.name} a treat
+              <Treat size={28} />
             </h2>
 
-            {/* Coffee count selector */}
             <div className="mt-4 flex items-center gap-2 rounded-2xl border border-accent bg-accent/15 p-4">
-              <span className="text-3xl" aria-hidden="true">
-                ☕
-              </span>
+              <Treat size={36} />
               <span className="text-muted" aria-hidden="true">
                 ×
               </span>
@@ -163,7 +164,7 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
                   );
                 })}
                 <label htmlFor="custom-count" className="sr-only">
-                  Custom number of coffees
+                  Custom number of treats
                 </label>
                 <input
                   id="custom-count"
@@ -260,12 +261,12 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
                   >
                     {paying ? (
                       <>
-                        <InlineDog size={28} /> Brewing your cross-chain payment…
+                        <InlineDog size={28} /> Sending your treat…
                       </>
                     ) : validCount ? (
                       `Support with ${formatUsd(total)}`
                     ) : (
-                      "Pick how many coffees"
+                      "Pick how many treats"
                     )}
                   </button>
                   <p className="text-center text-xs text-muted">
@@ -284,17 +285,18 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-4 py-12">
+    <main className="relative flex min-h-dvh flex-1 flex-col items-center justify-center overflow-hidden px-4 py-12">
+      <SpritePageDecor />
       <Link
         href="/"
-        className="mb-8 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="relative z-10 mb-8 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Logo size={40} className="text-lg" />
       </Link>
-      <div className="w-full max-w-md overflow-hidden rounded-3xl border border-border bg-surface shadow-xl shadow-border/60 fade-in-up">
+      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl border border-border bg-surface shadow-xl shadow-border/60 fade-in-up">
         {children}
       </div>
-      <p className="mt-6 text-center text-xs text-muted">
+      <p className="relative z-10 mt-6 text-center text-xs text-muted">
         Powered by Particle Universal Accounts (EIP-7702) · Magic · Arbitrum
       </p>
     </main>

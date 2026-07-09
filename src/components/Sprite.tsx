@@ -5,15 +5,27 @@ const SHEET_W = 600;
 const SHEET_H = 372;
 
 export const SPRITES = {
-  /** Cool sunglasses — tech stack badge */
+  /** Cool sunglasses, tech stack badge */
   techBadge: { col: 3, row: 0 },
-  /** Winking — friendly email login */
+  /** Winking, friendly email login */
   stepLogin: { col: 2, row: 2 },
-  /** Whistling — share your link */
+  /** Whistling, share your link */
   stepShare: { col: 2, row: 1 },
-  /** Shouting with joy — get paid on Arbitrum */
+  /** Shouting with joy, get paid on Arbitrum */
   stepPay: { col: 5, row: 2 },
 } as const;
+
+/** Decorative sprite placements for page backgrounds (col/row in the 6×3 sheet). */
+export const DECOR_SPRITES = [
+  { col: 0, row: 0, className: "left-[4%] top-[8%] -rotate-12" },
+  { col: 5, row: 0, className: "right-[6%] top-[12%] rotate-10" },
+  { col: 1, row: 1, className: "left-[2%] top-[38%] rotate-6" },
+  { col: 4, row: 2, className: "right-[4%] top-[42%] -rotate-8" },
+  { col: 2, row: 0, className: "left-[8%] bottom-[18%] -rotate-6" },
+  { col: 3, row: 2, className: "right-[8%] bottom-[14%] rotate-12" },
+  { col: 5, row: 1, className: "left-[14%] bottom-[8%] rotate-3" },
+  { col: 0, row: 2, className: "right-[12%] bottom-[6%] -rotate-10" },
+] as const;
 
 type SpriteKey = keyof typeof SPRITES;
 

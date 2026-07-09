@@ -7,15 +7,16 @@ export type CreatorPagePayload = {
   bio?: string;
   /** Avatar emoji. */
   emoji?: string;
-  /** Price of one coffee in USD. */
+  /** Price of one treat in USD. */
   price: number;
   /** Creation timestamp (ms). */
   ts: number;
 };
 
 export const DOGI_AVATAR = "dogi";
+export const TREAT_AVATAR = "treat";
 
-export const CREATOR_EMOJIS = [DOGI_AVATAR, "☕", "🎨", "🎸", "✍️", "📷", "🎮", "🧑‍🍳", "🌱"];
+export const CREATOR_EMOJIS = [DOGI_AVATAR, TREAT_AVATAR, "🎨", "🎸", "✍️", "📷", "🎮", "🧑‍🍳", "🌱"];
 
 const base64UrlEncode = (input: string) =>
   btoa(unescape(encodeURIComponent(input)))

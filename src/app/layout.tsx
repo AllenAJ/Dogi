@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Dogi: get paid from any chain",
   description:
-    "Coffee pages for creators and payment links for everyone. Fans and clients pay with any token on any chain. You receive USDC on Arbitrum. Powered by Particle Universal Accounts (EIP-7702) and Magic.",
+    "Treat pages for creators and payment links for everyone. Fans and clients pay with any token on any chain. You receive USDC on Arbitrum. Powered by Particle Universal Accounts (EIP-7702) and Magic.",
   icons: {
     icon: "/mascot.gif",
   },

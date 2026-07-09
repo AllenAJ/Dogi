@@ -4,8 +4,10 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMagic } from "@/providers/MagicProvider";
 import { Header } from "@/components/Header";
+import { SpritePageDecor } from "@/components/SpritePageDecor";
 import { BalanceCard } from "@/components/BalanceCard";
 import { LoadingDog, Mascot } from "@/components/Mascot";
+import { Treat } from "@/components/Treat";
 import { CreatorAvatar } from "@/components/CreatorAvatar";
 import {
   StoredLink,
@@ -18,6 +20,7 @@ import {
   CREATOR_EMOJIS,
   CreatorConfig,
   DOGI_AVATAR,
+  TREAT_AVATAR,
   creatorPageCode,
   loadCreatorConfig,
   saveCreatorConfig,
@@ -34,25 +37,31 @@ export default function Dashboard() {
 
   if (initializing || !address) {
     return (
-      <main className="flex flex-1 items-center justify-center">
-        <LoadingDog label="Fetching your account…" size={112} />
-      </main>
+      <div className="relative flex min-h-dvh flex-1 flex-col">
+        <SpritePageDecor />
+        <main className="relative z-10 flex flex-1 items-center justify-center">
+          <LoadingDog label="Fetching your account…" size={112} />
+        </main>
+      </div>
     );
   }
 
   return (
-    <>
-      <Header />
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
-        <BalanceCard />
-        <CoffeePageCard address={address} />
-        <PaymentLinksSection address={address} />
-        <p className="text-center text-xs text-muted">
-          Your email login is your account. The same address works on Ethereum, Base,
-          Arbitrum, BNB Chain, and Solana via Particle Universal Accounts (EIP-7702).
-        </p>
-      </main>
-    </>
+    <div className="relative flex min-h-dvh flex-1 flex-col">
+      <SpritePageDecor />
+      <div className="relative z-10 flex flex-1 flex-col">
+        <Header />
+        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
+          <BalanceCard />
+          <CoffeePageCard address={address} />
+          <PaymentLinksSection address={address} />
+          <p className="text-center text-xs text-muted">
+            Your email login is your account. The same address works on Ethereum, Base,
+            Arbitrum, BNB Chain, and Solana via Particle Universal Accounts (EIP-7702).
+          </p>
+        </main>
+      </div>
+    </div>
   );
 }
 
@@ -103,7 +112,7 @@ function CoffeePageCard({ address }: { address: string }) {
       return;
     }
     if (!Number.isFinite(priceValue) || priceValue < 0.5 || priceValue > 1000) {
-      setFormError("Coffee price must be between $0.50 and $1,000");
+      setFormError("Treat price must be between $0.50 and $1,000");
       return;
     }
     setFormError(null);
@@ -131,11 +140,11 @@ function CoffeePageCard({ address }: { address: string }) {
         <div className="max-w-md">
           <CreatorAvatar emoji={saved?.emoji ?? DOGI_AVATAR} size={48} className="pop-in" />
           <h2 className="mt-2 text-xl font-bold tracking-tight">
-            {saved ? "Your coffee page" : "Start a coffee page"}
+            {saved ? "Your treat page" : "Start a treat page"}
           </h2>
           <p className="mt-1 text-sm text-muted">
             {saved
-              ? "Share it anywhere. Fans buy you a coffee with any token on any chain. You get USDC on Arbitrum."
+              ? "Share it anywhere. Fans send you treats with any token on any chain. You get USDC on Arbitrum."
               : "Give your audience an easy way to say thanks. Fans pay with any token on any chain, no wallet needed. You get USDC on Arbitrum."}
           </p>
         </div>
@@ -147,7 +156,7 @@ function CoffeePageCard({ address }: { address: string }) {
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold">{saved.name}</p>
                 <p className="text-xs text-muted">
-                  {formatUsd(saved.price)} per coffee
+                  {formatUsd(saved.price)} per treat
                 </p>
               </div>
             </div>
@@ -214,7 +223,7 @@ function CoffeePageCard({ address }: { address: string }) {
           </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="creator-price" className="text-sm font-semibold">
-              Price per coffee (USD)
+              Price per treat (USD)
             </label>
             <div className="relative">
               <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-muted">
@@ -259,7 +268,13 @@ function CoffeePageCard({ address }: { address: string }) {
                   key={option}
                   type="button"
                   onClick={() => setEmoji(option)}
-                  aria-label={option === DOGI_AVATAR ? "Avatar Dogi mascot" : `Avatar ${option}`}
+                  aria-label={
+                    option === DOGI_AVATAR
+                      ? "Avatar Dogi mascot"
+                      : option === TREAT_AVATAR
+                        ? "Avatar treat"
+                        : `Avatar ${option}`
+                  }
                   aria-pressed={emoji === option}
                   className={`flex size-11 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     emoji === option
@@ -269,6 +284,8 @@ function CoffeePageCard({ address }: { address: string }) {
                 >
                   {option === DOGI_AVATAR ? (
                     <Mascot size={28} />
+                  ) : option === TREAT_AVATAR ? (
+                    <Treat size={24} />
                   ) : (
                     <span className="text-xl">{option}</span>
                   )}
@@ -402,7 +419,7 @@ function PaymentLinksSection({ address }: { address: string }) {
               id="note"
               type="text"
               maxLength={120}
-              placeholder="Invoice #42, dinner, coffee…"
+              placeholder="Invoice #42, dinner, treats…"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="h-11 rounded-full border border-border bg-surface px-4 text-sm placeholder:text-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
