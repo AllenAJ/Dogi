@@ -73,7 +73,7 @@ export function EmailLogin({ onSuccess }: { onSuccess?: (address: string) => voi
         )}
       </button>
       <p className="text-center text-xs text-muted">
-        No wallet, no seed phrase — a one-time code creates your account.
+        No wallet, no seed phrase. A one-time code creates your account.
       </p>
     </form>
   );

@@ -69,6 +69,17 @@ Open http://localhost:3000.
 | `NEXT_PUBLIC_PARTICLE_CLIENT_KEY` | same project |
 | `NEXT_PUBLIC_PARTICLE_APP_ID` | same project (create a Web app) |
 
+### Testnet mode (optional)
+
+Add these to `.env.local` for Arbitrum Sepolia testing:
+
+```bash
+NEXT_PUBLIC_SETTLEMENT_CHAIN_ID=421614
+NEXT_PUBLIC_SETTLEMENT_USDC_ADDRESS=0x... # USDC token address on Arbitrum Sepolia
+# Optional custom RPC (otherwise defaults to sepolia-rollup.arbitrum.io/rpc)
+# NEXT_PUBLIC_ARB_RPC_URL=https://sepolia-rollup.arbitrum.io/rpc
+```
+
 ### Demo flow
 
 1. Log in with your email on the landing page.

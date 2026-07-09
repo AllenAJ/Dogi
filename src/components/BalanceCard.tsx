@@ -3,28 +3,41 @@
 import { useState } from "react";
 import { useUniversalAccount } from "@/providers/UniversalAccountProvider";
 import { formatTokenAmount, formatUsd } from "@/lib/format";
-import { CHAIN_NAMES } from "@/lib/config";
+import { CHAIN_NAMES, IS_TESTNET_SETTLEMENT, SETTLEMENT_CHAIN_LABEL } from "@/lib/config";
 import { InlineDog } from "./Mascot";
 
 export function BalanceCard() {
-  const { primaryAssets, balanceLoading, refreshBalance } = useUniversalAccount();
+  const { primaryAssets, onChainNativeEth, balanceLoading, refreshBalance } =
+    useUniversalAccount();
   const [expanded, setExpanded] = useState(false);
 
   const assets = (primaryAssets?.assets ?? []).filter((a) => a.amount > 0);
+  const usdTotal = primaryAssets?.totalAmountInUSD ?? 0;
+  const nativeEth = onChainNativeEth ?? 0;
+  const hasOnChainEth = IS_TESTNET_SETTLEMENT && nativeEth > 0;
+  const showEthPrimary = hasOnChainEth && usdTotal === 0 && assets.length === 0;
+  const isEmpty = primaryAssets !== null && !balanceLoading && usdTotal === 0 && assets.length === 0 && !hasOnChainEth;
 
   return (
     <section className="rounded-3xl border border-border bg-surface p-6">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-muted">Balance — all chains, one number</h2>
+          <h2 className="text-sm font-semibold text-muted">Balance across all chains</h2>
           {primaryAssets === null && balanceLoading ? (
             <div className="mt-2 flex items-center gap-2">
               <InlineDog size={28} />
               <span className="text-sm text-muted">Fetching balance…</span>
             </div>
+          ) : showEthPrimary ? (
+            <>
+              <p className="mt-1 text-3xl font-extrabold tabular-nums tracking-tight">
+                {formatTokenAmount(nativeEth)} ETH
+              </p>
+              <p className="mt-1 text-sm text-muted">on {SETTLEMENT_CHAIN_LABEL}</p>
+            </>
           ) : (
             <p className="mt-1 text-3xl font-extrabold tabular-nums tracking-tight">
-              {formatUsd(primaryAssets?.totalAmountInUSD ?? 0)}
+              {formatUsd(usdTotal)}
             </p>
           )}
         </div>
@@ -50,6 +63,13 @@ export function BalanceCard() {
           )}
         </button>
       </div>
+
+      {hasOnChainEth && usdTotal === 0 ? (
+        <p className="mt-4 border-t border-border pt-4 text-xs text-muted">
+          Testnet mode: showing on-chain ETH from {SETTLEMENT_CHAIN_LABEL}. USD totals from
+          Particle may still read $0.00.
+        </p>
+      ) : null}
 
       {assets.length > 0 ? (
         <div className="mt-4 border-t border-border pt-4">
@@ -84,11 +104,10 @@ export function BalanceCard() {
             </ul>
           ) : null}
         </div>
-      ) : primaryAssets !== null && !balanceLoading ? (
+      ) : isEmpty ? (
         <p className="mt-4 border-t border-border pt-4 text-sm text-muted">
-          Empty for now. Send any token — ETH, USDC, USDT, BNB, or SOL — on Ethereum, Base,
-          Arbitrum, BNB Chain, or Solana to your address above and it shows up here as one
-          balance.
+          Empty for now. Send ETH, USDC, USDT, BNB, or SOL on Ethereum, Base, Arbitrum, BNB
+          Chain, or Solana to your address above and it shows up here as one balance.
         </p>
       ) : null}
     </section>

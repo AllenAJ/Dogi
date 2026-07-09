@@ -48,7 +48,7 @@ export default function Dashboard() {
         <CoffeePageCard address={address} />
         <PaymentLinksSection address={address} />
         <p className="text-center text-xs text-muted">
-          Your email login is your account — the same address works on Ethereum, Base,
+          Your email login is your account. The same address works on Ethereum, Base,
           Arbitrum, BNB Chain, and Solana via Particle Universal Accounts (EIP-7702).
         </p>
       </main>
@@ -135,8 +135,8 @@ function CoffeePageCard({ address }: { address: string }) {
           </h2>
           <p className="mt-1 text-sm text-muted">
             {saved
-              ? "Share it anywhere. Fans buy you a coffee with any token on any chain — you get USDC on Arbitrum."
-              : "Give your audience an easy way to say thanks. Fans pay with any token on any chain, no wallet needed — you get USDC on Arbitrum."}
+              ? "Share it anywhere. Fans buy you a coffee with any token on any chain. You get USDC on Arbitrum."
+              : "Give your audience an easy way to say thanks. Fans pay with any token on any chain, no wallet needed. You get USDC on Arbitrum."}
           </p>
         </div>
 

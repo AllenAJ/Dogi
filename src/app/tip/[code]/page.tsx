@@ -9,7 +9,8 @@ import { InlineDog, LoadingDog, Logo, Mascot } from "@/components/Mascot";
 import { CreatorAvatar } from "@/components/CreatorAvatar";
 import { decodeCreatorPage } from "@/lib/creator";
 import { formatUsd, shortAddress } from "@/lib/format";
-import { explorerTxUrl } from "@/lib/config";
+import { balanceDisplay, hasLowUsdBalance } from "@/lib/balanceDisplay";
+import { explorerTxUrl, SETTLEMENT_CHAIN_LABEL } from "@/lib/config";
 
 const PRESET_COUNTS = [1, 3, 5];
 
@@ -24,7 +25,7 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
   const creator = useMemo(() => decodeCreatorPage(code), [code]);
 
   const { address, initializing } = useMagic();
-  const { primaryAssets, balanceLoading, payUsdcOnArbitrum, refreshBalance } =
+  const { primaryAssets, onChainNativeEth, balanceLoading, payUsdcOnArbitrum, refreshBalance } =
     useUniversalAccount();
 
   const [count, setCount] = useState(1);
@@ -55,9 +56,13 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
   const effectiveCount = customCount ? Math.max(1, Math.floor(Number(customCount))) : count;
   const validCount = Number.isFinite(effectiveCount) && effectiveCount >= 1 && effectiveCount <= 1000;
   const total = validCount ? effectiveCount * creator.price : 0;
-  const totalUsd = primaryAssets?.totalAmountInUSD ?? 0;
-  const insufficient = primaryAssets !== null && validCount && totalUsd < total;
+  const insufficient = validCount && hasLowUsdBalance(primaryAssets, total);
   const paying = state.step === "paying";
+  const balance = balanceDisplay({
+    primaryAssets,
+    onChainNativeEth,
+    settlementLabel: SETTLEMENT_CHAIN_LABEL,
+  });
 
   const handleTip = async () => {
     if (!validCount) return;
@@ -71,7 +76,7 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
       const msg =
         err instanceof Error && err.message
           ? err.message
-          : "Payment failed. Nothing was charged — try again.";
+          : "Payment failed. Nothing was charged. Try again.";
       setState({ step: "error", message: msg });
     }
   };
@@ -96,7 +101,7 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
               You bought {creator.name} {state.count} coffee{state.count > 1 ? "s" : ""}!
             </h2>
             <p className="mt-1 text-sm text-muted">
-              {formatUsd(state.count * creator.price)} is on its way as USDC on Arbitrum.
+              {formatUsd(state.count * creator.price)} is on its way as USDC on {SETTLEMENT_CHAIN_LABEL}.
             </p>
             {message.trim() ? (
               <p className="mx-auto mt-4 max-w-xs rounded-2xl bg-surface-raised p-4 text-sm">
@@ -116,7 +121,7 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
                 href="/"
                 className="text-xs text-muted underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Start your own coffee page — it&apos;s free
+                Start your own coffee page. It&apos;s free
               </Link>
             </div>
           </div>
@@ -207,11 +212,18 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center justify-between rounded-2xl bg-surface-raised px-4 py-3 text-sm">
                     <span className="text-muted">Your balance (all chains)</span>
-                    <span className="font-bold tabular-nums">
+                    <span className="text-right font-bold tabular-nums">
                       {balanceLoading && primaryAssets === null ? (
                         <InlineDog size={24} />
                       ) : (
-                        formatUsd(totalUsd)
+                        <>
+                          {balance.primary}
+                          {balance.secondary ? (
+                            <span className="block text-xs font-normal text-muted">
+                              {balance.secondary}
+                            </span>
+                          ) : null}
+                        </>
                       )}
                     </span>
                   </div>
@@ -220,11 +232,17 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
                     <div className="rounded-2xl border border-danger/40 bg-danger/5 p-4 text-sm">
                       <p className="font-semibold text-danger">Not enough funds yet</p>
                       <p className="mt-1 text-muted">
-                        Send any token — ETH, USDC, USDT, BNB, or SOL, on Ethereum,
-                        Base, Arbitrum, BNB Chain, or Solana — to your address{" "}
-                        <span className="font-mono">{shortAddress(address, 6)}</span>{" "}
-                        and it all counts toward this tip.
+                        Send ETH, USDC, USDT, BNB, or SOL on Ethereum, Base, Arbitrum, BNB
+                        Chain, or Solana to your address{" "}
+                        <span className="font-mono">{shortAddress(address, 6)}</span> and it
+                        all counts toward this tip.
                       </p>
+                      <Link
+                        href="/fund"
+                        className="mt-3 inline-flex h-10 items-center justify-center rounded-full border border-border-strong bg-surface px-4 text-xs font-semibold text-foreground transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        Add funds first
+                      </Link>
                     </div>
                   ) : null}
 

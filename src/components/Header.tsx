@@ -31,6 +31,12 @@ export function Header() {
 
         {address ? (
           <div className="flex items-center gap-2">
+            <Link
+              href="/fund"
+              className="rounded-full border border-border-strong bg-surface px-3 py-2 text-xs font-semibold text-muted transition-colors hover:bg-surface-raised hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Add funds
+            </Link>
             <button
               type="button"
               onClick={copyAddress}

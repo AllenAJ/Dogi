@@ -8,7 +8,11 @@ import { EmailLogin } from "@/components/EmailLogin";
 import { InlineDog, LoadingDog, Logo, Mascot } from "@/components/Mascot";
 import { decodePaymentLink } from "@/lib/links";
 import { formatUsd, shortAddress } from "@/lib/format";
-import { explorerTxUrl } from "@/lib/config";
+import { balanceDisplay, hasLowUsdBalance } from "@/lib/balanceDisplay";
+import {
+  explorerTxUrl,
+  SETTLEMENT_CHAIN_LABEL,
+} from "@/lib/config";
 
 type PayState =
   | { step: "idle" }
@@ -21,7 +25,7 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
   const payload = useMemo(() => decodePaymentLink(code), [code]);
 
   const { address, initializing } = useMagic();
-  const { primaryAssets, balanceLoading, payUsdcOnArbitrum, refreshBalance } =
+  const { primaryAssets, onChainNativeEth, balanceLoading, payUsdcOnArbitrum, refreshBalance } =
     useUniversalAccount();
   const [state, setState] = useState<PayState>({ step: "idle" });
 
@@ -45,10 +49,14 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
     );
   }
 
-  const totalUsd = primaryAssets?.totalAmountInUSD ?? 0;
   const amountNumber = Number(payload.amount);
-  const insufficient = primaryAssets !== null && totalUsd < amountNumber;
+  const insufficient = hasLowUsdBalance(primaryAssets, amountNumber);
   const paying = state.step === "paying";
+  const balance = balanceDisplay({
+    primaryAssets,
+    onChainNativeEth,
+    settlementLabel: SETTLEMENT_CHAIN_LABEL,
+  });
 
   const handlePay = async () => {
     setState({ step: "paying", label: "Building your cross-chain route…" });
@@ -61,7 +69,7 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
       const message =
         err instanceof Error && err.message
           ? err.message
-          : "Payment failed. Nothing was charged — try again.";
+          : "Payment failed. Nothing was charged. Try again.";
       setState({ step: "error", message });
     }
   };
@@ -78,7 +86,7 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
           <p className="mt-3 text-center text-sm text-muted">“{payload.note}”</p>
         ) : null}
         <p className="mt-3 text-center font-mono text-xs text-muted">
-          to {shortAddress(payload.to, 6)} · settles as USDC on Arbitrum
+          to {shortAddress(payload.to, 6)} · settles as USDC on {SETTLEMENT_CHAIN_LABEL}
         </p>
 
         <div className="mt-8 border-t border-border pt-6">
@@ -87,7 +95,7 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
               <Mascot size={96} className="mx-auto pop-in" />
               <h2 className="mt-4 text-lg font-semibold">Paid</h2>
               <p className="mt-1 text-sm text-muted">
-                {formatUsd(payload.amount)} is on its way as USDC on Arbitrum.
+                {formatUsd(payload.amount)} is on its way as USDC on {SETTLEMENT_CHAIN_LABEL}.
               </p>
               <a
                 href={explorerTxUrl(state.transactionId)}
@@ -113,11 +121,18 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between rounded-2xl bg-surface-raised px-4 py-3 text-sm">
                 <span className="text-muted">Your balance (all chains)</span>
-                <span className="font-bold tabular-nums">
+                <span className="text-right font-bold tabular-nums">
                   {balanceLoading && primaryAssets === null ? (
                     <InlineDog size={24} />
                   ) : (
-                    formatUsd(totalUsd)
+                    <>
+                      {balance.primary}
+                      {balance.secondary ? (
+                        <span className="block text-xs font-normal text-muted">
+                          {balance.secondary}
+                        </span>
+                      ) : null}
+                    </>
                   )}
                 </span>
               </div>
@@ -126,11 +141,17 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
                 <div className="rounded-2xl border border-danger/40 bg-danger/5 p-4 text-sm">
                   <p className="font-semibold text-danger">Not enough funds yet</p>
                   <p className="mt-1 text-muted">
-                    Send any token — ETH, USDC, USDT, BNB, or SOL, on Ethereum, Base,
-                    Arbitrum, BNB Chain, or Solana — to your address{" "}
-                    <span className="font-mono">{shortAddress(address, 6)}</span> and it
-                    all counts toward this payment.
+                    Send ETH, USDC, USDT, BNB, or SOL on Ethereum, Base, Arbitrum, BNB Chain,
+                    or Solana to your address{" "}
+                    <span className="font-mono">{shortAddress(address, 6)}</span> and it all
+                    counts toward this payment.
                   </p>
+                  <Link
+                    href={`/fund?next=${encodeURIComponent(`/pay/${code}`)}`}
+                    className="mt-3 inline-flex h-10 items-center justify-center rounded-full border border-border-strong bg-surface px-4 text-xs font-semibold text-foreground transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    Add funds first
+                  </Link>
                 </div>
               ) : null}
 
@@ -157,7 +178,7 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
               </button>
               <p className="text-center text-xs text-muted">
                 Pays from whatever you hold, on any chain. Routing, bridging, and gas are
-                automatic — you approve once.
+                automatic. You approve once.
               </p>
             </div>
           )}

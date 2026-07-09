@@ -21,14 +21,18 @@ import { useMagic } from "./MagicProvider";
 import {
   ARBITRUM_CHAIN_ID,
   ARBITRUM_USDC_ADDRESS,
+  IS_TESTNET_SETTLEMENT,
   PARTICLE_APP_ID,
   PARTICLE_CLIENT_KEY,
   PARTICLE_PROJECT_ID,
 } from "@/lib/config";
+import { fetchSettlementNativeEth } from "@/lib/onChainBalance";
 
 type UAContextType = {
   universalAccount: UniversalAccount | null;
   primaryAssets: IAssetsResponse | null;
+  /** Native ETH on settlement chain; used when UA USD valuation is unavailable on testnet. */
+  onChainNativeEth: number | null;
   balanceLoading: boolean;
   refreshBalance: () => Promise<void>;
   /** One-time EIP-7702 delegation of the EOA on Arbitrum (no-op when already delegated). */
@@ -40,6 +44,7 @@ type UAContextType = {
 const UAContext = createContext<UAContextType>({
   universalAccount: null,
   primaryAssets: null,
+  onChainNativeEth: null,
   balanceLoading: false,
   refreshBalance: async () => {},
   ensureDelegated: async () => {},
@@ -51,6 +56,7 @@ export const useUniversalAccount = () => useContext(UAContext);
 export function UniversalAccountProvider({ children }: { children: ReactNode }) {
   const { magic, address } = useMagic();
   const [primaryAssets, setPrimaryAssets] = useState<IAssetsResponse | null>(null);
+  const [onChainNativeEth, setOnChainNativeEth] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
 
   const universalAccount = useMemo(() => {
@@ -73,20 +79,25 @@ export function UniversalAccountProvider({ children }: { children: ReactNode }) 
   }, [address]);
 
   const refreshBalance = useCallback(async () => {
-    if (!universalAccount) {
+    if (!universalAccount || !address) {
       setPrimaryAssets(null);
+      setOnChainNativeEth(null);
       return;
     }
     setBalanceLoading(true);
     try {
-      const assets = await universalAccount.getPrimaryAssets();
+      const [assets, nativeEth] = await Promise.all([
+        universalAccount.getPrimaryAssets(),
+        IS_TESTNET_SETTLEMENT ? fetchSettlementNativeEth(address) : Promise.resolve(null),
+      ]);
       setPrimaryAssets(assets);
+      setOnChainNativeEth(nativeEth);
     } catch (err) {
       console.error("Failed to fetch unified balance:", err);
     } finally {
       setBalanceLoading(false);
     }
-  }, [universalAccount]);
+  }, [universalAccount, address]);
 
   // Deferred so the state updates happen outside the effect's synchronous body.
   useEffect(() => {
@@ -191,12 +202,21 @@ export function UniversalAccountProvider({ children }: { children: ReactNode }) 
     () => ({
       universalAccount,
       primaryAssets,
+      onChainNativeEth,
       balanceLoading,
       refreshBalance,
       ensureDelegated,
       payUsdcOnArbitrum,
     }),
-    [universalAccount, primaryAssets, balanceLoading, refreshBalance, ensureDelegated, payUsdcOnArbitrum],
+    [
+      universalAccount,
+      primaryAssets,
+      onChainNativeEth,
+      balanceLoading,
+      refreshBalance,
+      ensureDelegated,
+      payUsdcOnArbitrum,
+    ],
   );
 
   return <UAContext.Provider value={value}>{children}</UAContext.Provider>;
