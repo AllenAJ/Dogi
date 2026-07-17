@@ -6,9 +6,11 @@ import { useMagic } from "@/providers/MagicProvider";
 import { Header } from "@/components/Header";
 import { SpritePageDecor } from "@/components/SpritePageDecor";
 import { BalanceCard } from "@/components/BalanceCard";
+import { RecentPayments } from "@/components/RecentPayments";
 import { LoadingDog, Mascot } from "@/components/Mascot";
 import { Treat } from "@/components/Treat";
 import { CreatorAvatar } from "@/components/CreatorAvatar";
+import { QrCode } from "@/components/QrCode";
 import {
   StoredLink,
   buildStoredLink,
@@ -55,6 +57,7 @@ export default function Dashboard() {
           <BalanceCard />
           <CoffeePageCard address={address} />
           <PaymentLinksSection address={address} />
+          <RecentPayments address={address} />
           <p className="text-center text-xs text-muted">
             Your email login is your account. The same address works on Ethereum, Base,
             Arbitrum, BNB Chain, and Solana via Particle Universal Accounts (EIP-7702).
@@ -77,6 +80,7 @@ function CoffeePageCard({ address }: { address: string }) {
   const [price, setPrice] = useState("5");
   const [formError, setFormError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showQr, setShowQr] = useState(false);
 
   const saved =
     config && config.addr === address.toLowerCase()
@@ -178,12 +182,25 @@ function CoffeePageCard({ address }: { address: string }) {
               </a>
               <button
                 type="button"
+                onClick={() => setShowQr((v) => !v)}
+                aria-pressed={showQr}
+                className="flex h-10 items-center rounded-full border border-border-strong px-3 text-xs font-semibold transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                QR
+              </button>
+              <button
+                type="button"
                 onClick={startEditing}
                 className="flex h-10 items-center rounded-full px-3 text-xs font-semibold text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Edit
               </button>
             </div>
+            {showQr ? (
+              <div className="mt-4 flex justify-center border-t border-border pt-4">
+                <QrCode value={pageUrl} label="Scan to open your treat page" />
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -329,6 +346,7 @@ function PaymentLinksSection({ address }: { address: string }) {
     list: StoredLink[];
   } | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [qrCode, setQrCode] = useState<string | null>(null);
 
   // Derived from localStorage; local mutations override until the address changes.
   const links = useMemo(() => {
@@ -444,43 +462,60 @@ function PaymentLinksSection({ address }: { address: string }) {
         ) : (
           <ul className="mt-4 flex flex-col gap-3">
             {links.map((link) => (
-              <li
-                key={link.code}
-                className="flex items-center justify-between gap-3 rounded-2xl bg-surface-raised p-3"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-bold tabular-nums">
-                    {formatUsd(link.amount)}
-                  </p>
-                  <p className="truncate text-xs text-muted">
-                    {link.note || new Date(link.ts).toLocaleDateString()}
-                  </p>
+              <li key={link.code} className="rounded-2xl bg-surface-raised p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold tabular-nums">
+                      {formatUsd(link.amount)}
+                    </p>
+                    <p className="truncate text-xs text-muted">
+                      {link.note || new Date(link.ts).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <a
+                      href={`/pay/${link.code}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full px-2.5 py-2 text-xs font-semibold text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      Open
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQrCode((current) => (current === link.code ? null : link.code))
+                      }
+                      aria-pressed={qrCode === link.code}
+                      className="rounded-full border border-border-strong px-3 py-2 text-xs font-semibold transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      QR
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => copyLink(link.code)}
+                      className="rounded-full border border-border-strong px-3 py-2 text-xs font-semibold transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {copiedCode === link.code ? "Copied" : "Copy"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeLink(link.code)}
+                      aria-label="Delete link"
+                      className="rounded-full px-2.5 py-2 text-xs text-muted transition-colors hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <a
-                    href={`/pay/${link.code}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-full px-2.5 py-2 text-xs font-semibold text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    Open
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => copyLink(link.code)}
-                    className="rounded-full border border-border-strong px-3 py-2 text-xs font-semibold transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {copiedCode === link.code ? "Copied" : "Copy"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeLink(link.code)}
-                    aria-label="Delete link"
-                    className="rounded-full px-2.5 py-2 text-xs text-muted transition-colors hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    ✕
-                  </button>
-                </div>
+                {qrCode === link.code ? (
+                  <div className="mt-3 flex justify-center border-t border-border pt-3">
+                    <QrCode
+                      value={`${origin}/pay/${link.code}`}
+                      label={`Scan to pay ${formatUsd(link.amount)}`}
+                    />
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>

@@ -67,6 +67,40 @@ declare module "@particle-network/universal-account-sdk" {
     receiver: string;
   }
 
+  export interface ITokenWithUSD {
+    token: IToken;
+    amount: string;
+    amountInUSD: string;
+    senderAddress: string;
+  }
+
+  export interface ISwap {
+    aggregator: string;
+    fromToken: ITokenWithUSD;
+    toToken: ITokenWithUSD;
+  }
+
+  export interface ITokenChanges {
+    from: string;
+    fromChains: number[];
+    to: string;
+    toChains: number[];
+    decr: ITokenWithUSD[];
+    incr: ITokenWithUSD[];
+    swaps: ISwap[];
+    totalFeeInUSD: string;
+    totalDecrAmountInUSD: string;
+    totalIncrAmountInUSD: string;
+    totalPaidAmountInUSD: string;
+  }
+
+  export interface ITransactionFees {
+    freeGasFee: boolean;
+    freeServiceFee: boolean;
+    transactionServiceFeeAmountInUSD: string;
+    transactionLPFeeAmountInUSD: string;
+  }
+
   export interface IUserOpWithChain {
     chainId: number;
     userOpHash: string;
@@ -85,6 +119,8 @@ declare module "@particle-network/universal-account-sdk" {
     transactionId: string;
     rootHash: string;
     userOps: IUserOpWithChain[];
+    tokenChanges: ITokenChanges;
+    transactionFees: ITransactionFees;
   }
 
   export interface EIP7702Authorization {
@@ -126,6 +162,7 @@ declare module "@particle-network/universal-account-sdk" {
       authorizations?: EIP7702Authorization[],
     ): Promise<{ transactionId: string } & Record<string, unknown>>;
     getTransaction(transactionId: string): Promise<unknown>;
+    getTransactions(page?: number, limit?: number, tag?: string): Promise<unknown>;
     getEIP7702Deployments(): Promise<{ chainId: number; isDelegated?: boolean }[]>;
     getEIP7702Auth(
       chainIds: number[],

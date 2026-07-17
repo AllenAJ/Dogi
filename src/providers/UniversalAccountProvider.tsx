@@ -27,6 +27,7 @@ import {
   PARTICLE_PROJECT_ID,
 } from "@/lib/config";
 import { fetchSettlementNativeEth } from "@/lib/onChainBalance";
+import { RouteSummary, summarizeRoute } from "@/lib/route";
 
 type UAContextType = {
   universalAccount: UniversalAccount | null;
@@ -37,8 +38,13 @@ type UAContextType = {
   refreshBalance: () => Promise<void>;
   /** One-time EIP-7702 delegation of the EOA on Arbitrum (no-op when already delegated). */
   ensureDelegated: () => Promise<void>;
+  /** Quote the cross-chain route for a payment without sending anything. */
+  previewPayUsdcOnArbitrum: (receiver: string, amount: string) => Promise<RouteSummary | null>;
   /** Send USDC (settled on Arbitrum) to a receiver, drawing from any chain/asset the payer holds. */
-  payUsdcOnArbitrum: (receiver: string, amount: string) => Promise<{ transactionId: string }>;
+  payUsdcOnArbitrum: (
+    receiver: string,
+    amount: string,
+  ) => Promise<{ transactionId: string; route: RouteSummary | null }>;
 };
 
 const UAContext = createContext<UAContextType>({
@@ -48,7 +54,8 @@ const UAContext = createContext<UAContextType>({
   balanceLoading: false,
   refreshBalance: async () => {},
   ensureDelegated: async () => {},
-  payUsdcOnArbitrum: async () => ({ transactionId: "" }),
+  previewPayUsdcOnArbitrum: async () => null,
+  payUsdcOnArbitrum: async () => ({ transactionId: "", route: null }),
 });
 
 export const useUniversalAccount = () => useContext(UAContext);
@@ -180,6 +187,25 @@ export function UniversalAccountProvider({ children }: { children: ReactNode }) 
     [universalAccount, magic, address, signAuthorization],
   );
 
+  // Quote only — no signatures, no state changes. The quote expires quickly, so the
+  // pay path re-creates the transaction rather than reusing this one (delegation can
+  // also invalidate the quoted 7702 nonces).
+  const previewPayUsdcOnArbitrum = useCallback(
+    async (receiver: string, amount: string) => {
+      if (!universalAccount) throw new Error("Account not ready");
+      const transaction = await universalAccount.createTransferTransaction({
+        token: {
+          chainId: ARBITRUM_CHAIN_ID,
+          address: ARBITRUM_USDC_ADDRESS,
+        },
+        amount,
+        receiver,
+      });
+      return summarizeRoute(transaction);
+    },
+    [universalAccount],
+  );
+
   const payUsdcOnArbitrum = useCallback(
     async (receiver: string, amount: string) => {
       if (!universalAccount) throw new Error("Account not ready");
@@ -193,7 +219,10 @@ export function UniversalAccountProvider({ children }: { children: ReactNode }) 
         receiver,
       });
       const result = await signAndSend(transaction);
-      return { transactionId: result.transactionId as string };
+      return {
+        transactionId: result.transactionId as string,
+        route: summarizeRoute(transaction),
+      };
     },
     [universalAccount, ensureDelegated, signAndSend],
   );
@@ -206,6 +235,7 @@ export function UniversalAccountProvider({ children }: { children: ReactNode }) 
       balanceLoading,
       refreshBalance,
       ensureDelegated,
+      previewPayUsdcOnArbitrum,
       payUsdcOnArbitrum,
     }),
     [
@@ -215,6 +245,7 @@ export function UniversalAccountProvider({ children }: { children: ReactNode }) 
       balanceLoading,
       refreshBalance,
       ensureDelegated,
+      previewPayUsdcOnArbitrum,
       payUsdcOnArbitrum,
     ],
   );

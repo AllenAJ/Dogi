@@ -9,17 +9,21 @@ import { InlineDog, LoadingDog, Logo, Mascot } from "@/components/Mascot";
 import { Treat } from "@/components/Treat";
 import { SpritePageDecor } from "@/components/SpritePageDecor";
 import { CreatorAvatar } from "@/components/CreatorAvatar";
+import { RouteCard } from "@/components/RouteCard";
 import { decodeCreatorPage } from "@/lib/creator";
 import { formatUsd, shortAddress } from "@/lib/format";
 import { balanceDisplay, hasLowUsdBalance } from "@/lib/balanceDisplay";
+import type { RouteSummary } from "@/lib/route";
 import { explorerTxUrl, SETTLEMENT_CHAIN_LABEL } from "@/lib/config";
 
 const PRESET_COUNTS = [1, 3, 5];
 
 type TipState =
   | { step: "idle" }
+  | { step: "quoting" }
+  | { step: "preview"; route: RouteSummary; count: number; total: number }
   | { step: "paying" }
-  | { step: "done"; transactionId: string; count: number }
+  | { step: "done"; transactionId: string; count: number; route: RouteSummary | null }
   | { step: "error"; message: string };
 
 export default function TipPage({ params }: { params: Promise<{ code: string }> }) {
@@ -27,8 +31,14 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
   const creator = useMemo(() => decodeCreatorPage(code), [code]);
 
   const { address, initializing } = useMagic();
-  const { primaryAssets, onChainNativeEth, balanceLoading, payUsdcOnArbitrum, refreshBalance } =
-    useUniversalAccount();
+  const {
+    primaryAssets,
+    onChainNativeEth,
+    balanceLoading,
+    previewPayUsdcOnArbitrum,
+    payUsdcOnArbitrum,
+    refreshBalance,
+  } = useUniversalAccount();
 
   const [count, setCount] = useState(1);
   const [customCount, setCustomCount] = useState("");
@@ -59,19 +69,23 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
   const validCount = Number.isFinite(effectiveCount) && effectiveCount >= 1 && effectiveCount <= 1000;
   const total = validCount ? effectiveCount * creator.price : 0;
   const insufficient = validCount && hasLowUsdBalance(primaryAssets, total);
-  const paying = state.step === "paying";
+  const busy = state.step === "paying" || state.step === "quoting";
   const balance = balanceDisplay({
     primaryAssets,
     onChainNativeEth,
     settlementLabel: SETTLEMENT_CHAIN_LABEL,
   });
 
-  const handleTip = async () => {
-    if (!validCount) return;
+  // Count and total are frozen at quote time so edits after the preview can't
+  // desync what the user confirmed from what is sent.
+  const handleTip = async (tipCount: number, tipTotal: number) => {
     setState({ step: "paying" });
     try {
-      const { transactionId } = await payUsdcOnArbitrum(creator.to, total.toFixed(2));
-      setState({ step: "done", transactionId, count: effectiveCount });
+      const { transactionId, route } = await payUsdcOnArbitrum(
+        creator.to,
+        tipTotal.toFixed(2),
+      );
+      setState({ step: "done", transactionId, count: tipCount, route });
       refreshBalance();
     } catch (err) {
       console.error(err);
@@ -79,6 +93,29 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
         err instanceof Error && err.message
           ? err.message
           : "Payment failed. Nothing was charged. Try again.";
+      setState({ step: "error", message: msg });
+    }
+  };
+
+  const handleQuote = async () => {
+    if (!validCount) return;
+    const tipCount = effectiveCount;
+    const tipTotal = total;
+    setState({ step: "quoting" });
+    try {
+      const route = await previewPayUsdcOnArbitrum(creator.to, tipTotal.toFixed(2));
+      if (route) {
+        setState({ step: "preview", route, count: tipCount, total: tipTotal });
+      } else {
+        // No parseable route (e.g. testnet) — pay directly like before.
+        await handleTip(tipCount, tipTotal);
+      }
+    } catch (err) {
+      console.error(err);
+      const msg =
+        err instanceof Error && err.message
+          ? err.message
+          : "Couldn't build a route for this payment. Try again.";
       setState({ step: "error", message: msg });
     }
   };
@@ -107,6 +144,15 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
             <p className="mt-1 text-sm text-muted">
               {formatUsd(state.count * creator.price)} is on its way as USDC on {SETTLEMENT_CHAIN_LABEL}.
             </p>
+            {state.route ? (
+              <div className="mt-4">
+                <RouteCard
+                  route={state.route}
+                  amountUsd={state.count * creator.price}
+                  compact
+                />
+              </div>
+            ) : null}
             {message.trim() ? (
               <p className="mx-auto mt-4 max-w-xs rounded-2xl bg-surface-raised p-4 text-sm">
                 “{message.trim()}”
@@ -253,25 +299,50 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
                     </p>
                   ) : null}
 
-                  <button
-                    type="button"
-                    onClick={handleTip}
-                    disabled={paying || insufficient || !validCount || primaryAssets === null}
-                    className="flex h-12 items-center justify-center gap-2 rounded-full bg-accent text-sm font-bold text-accent-foreground transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-                  >
-                    {paying ? (
-                      <>
-                        <InlineDog size={28} /> Sending your treat…
-                      </>
-                    ) : validCount ? (
-                      `Support with ${formatUsd(total)}`
-                    ) : (
-                      "Pick how many treats"
-                    )}
-                  </button>
+                  {state.step === "preview" ? (
+                    <>
+                      <RouteCard route={state.route} amountUsd={state.total} />
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setState({ step: "idle" })}
+                          className="flex h-12 items-center justify-center rounded-full border border-border-strong px-5 text-sm font-semibold transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTip(state.count, state.total)}
+                          className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-accent text-sm font-bold text-accent-foreground transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                        >
+                          Confirm &amp; send {formatUsd(state.total)}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleQuote}
+                      disabled={busy || insufficient || !validCount || primaryAssets === null}
+                      className="flex h-12 items-center justify-center gap-2 rounded-full bg-accent text-sm font-bold text-accent-foreground transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                    >
+                      {busy ? (
+                        <>
+                          <InlineDog size={28} />{" "}
+                          {state.step === "paying"
+                            ? "Sending your treat…"
+                            : "Finding your best route…"}
+                        </>
+                      ) : validCount ? (
+                        `Support with ${formatUsd(total)}`
+                      ) : (
+                        "Pick how many treats"
+                      )}
+                    </button>
+                  )}
                   <p className="text-center text-xs text-muted">
                     Pays from whatever you hold, on any chain. {creator.name} receives
-                    USDC on Arbitrum.
+                    USDC on Arbitrum. You&apos;ll see the route before anything is sent.
                   </p>
                 </div>
               )}

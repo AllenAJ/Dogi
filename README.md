@@ -27,6 +27,13 @@ swapping, and gas are invisible.
   `createTransferTransaction()` for USDC on **Arbitrum**; the SDK sources liquidity
   from whatever primary assets the payer holds on any chain and settles on Arbitrum.
   (Arbitrum bounty: Arbitrum is the settlement layer, invisible to the user)
+- **Route preview before every payment** — the quote's `tokenChanges` are shown to
+  the payer as a route card ("0.004 ETH on Base + 2 USDT on BNB Chain → $15 USDC on
+  Arbitrum, fees $0.12") before they confirm, and again on the receipt.
+- **Payments-received feed** — the dashboard reads incoming USDC `Transfer` events
+  on Arbitrum straight from the chain, so creators see who paid them.
+- **Shareable by design** — pay/tip links carry dynamic OG images (amount, name,
+  note rendered server-side from the URL payload) and every link has a QR code.
 
 ### The EIP-7702 flow
 
@@ -49,6 +56,9 @@ Key files:
 | `src/app/tip/[code]/page.tsx` | Public creator page: buy 1/3/5 coffees cross-chain |
 | `src/app/pay/[code]/page.tsx` | The pay page: log in with email → one-tap cross-chain payment |
 | `src/lib/links.ts`, `src/lib/creator.ts` | Links and creator pages are self-contained — payload encoded in the URL, no backend |
+| `src/lib/route.ts`, `src/components/RouteCard.tsx` | Parse the UA quote's `tokenChanges` into the route card shown before/after paying |
+| `src/lib/payments.ts`, `src/components/RecentPayments.tsx` | On-chain feed of incoming USDC transfers on Arbitrum |
+| `src/app/{pay,tip}/[code]/opengraph-image.tsx` | Dynamic OG share images rendered from the URL payload |
 
 ## Run it
 

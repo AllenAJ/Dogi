@@ -43,6 +43,12 @@ export const hasRequiredEnv =
 export const explorerTxUrl = (transactionId: string) =>
   `https://universalx.app/activity/details?id=${transactionId}`;
 
+/** Block-explorer link for a transaction hash on the settlement chain. */
+export const settlementExplorerTxUrl = (txHash: string) =>
+  IS_TESTNET_SETTLEMENT
+    ? `https://sepolia.arbiscan.io/tx/${txHash}`
+    : `https://arbiscan.io/tx/${txHash}`;
+
 export const CHAIN_NAMES: Record<number, string> = {
   1: "Ethereum",
   56: "BNB Chain",

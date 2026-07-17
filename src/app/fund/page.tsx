@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { EmailLogin } from "@/components/EmailLogin";
 import { InlineDog, LoadingDog, Logo } from "@/components/Mascot";
+import { QrCode } from "@/components/QrCode";
 import { useMagic } from "@/providers/MagicProvider";
 import { shortAddress } from "@/lib/format";
 import { SETTLEMENT_CHAIN_LABEL } from "@/lib/config";
@@ -12,7 +13,22 @@ import { SETTLEMENT_CHAIN_LABEL } from "@/lib/config";
 const SUPPORTED_CHAINS = ["Ethereum", "Base", "Arbitrum", "BNB Chain", "Solana"];
 const SUPPORTED_TOKENS = ["ETH", "USDC", "USDT", "BNB", "SOL"];
 
+// useSearchParams() requires a Suspense boundary for prerendering.
 export default function FundPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-[calc(100dvh-64px)] items-center justify-center">
+          <LoadingDog label="Waking up Dogi..." size={70} />
+        </main>
+      }
+    >
+      <FundPageInner />
+    </Suspense>
+  );
+}
+
+function FundPageInner() {
   const { address, initializing } = useMagic();
   const [copied, setCopied] = useState(false);
   const params = useSearchParams();
@@ -67,6 +83,9 @@ export default function FundPage() {
                   Your deposit address
                 </p>
                 <p className="mt-2 break-all font-mono text-sm">{address}</p>
+                <div className="mt-3 flex justify-center">
+                  <QrCode value={address} size={144} label="Scan to copy your address" />
+                </div>
                 <div className="mt-3 flex items-center gap-2">
                   <button
                     type="button"

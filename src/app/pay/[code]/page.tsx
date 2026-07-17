@@ -6,9 +6,11 @@ import { useMagic } from "@/providers/MagicProvider";
 import { useUniversalAccount } from "@/providers/UniversalAccountProvider";
 import { EmailLogin } from "@/components/EmailLogin";
 import { InlineDog, LoadingDog, Logo, Mascot } from "@/components/Mascot";
+import { RouteCard } from "@/components/RouteCard";
 import { decodePaymentLink } from "@/lib/links";
 import { formatUsd, shortAddress } from "@/lib/format";
 import { balanceDisplay, hasLowUsdBalance } from "@/lib/balanceDisplay";
+import type { RouteSummary } from "@/lib/route";
 import {
   explorerTxUrl,
   SETTLEMENT_CHAIN_LABEL,
@@ -16,8 +18,10 @@ import {
 
 type PayState =
   | { step: "idle" }
+  | { step: "quoting" }
+  | { step: "preview"; route: RouteSummary }
   | { step: "paying"; label: string }
-  | { step: "done"; transactionId: string }
+  | { step: "done"; transactionId: string; route: RouteSummary | null }
   | { step: "error"; message: string };
 
 export default function PayPage({ params }: { params: Promise<{ code: string }> }) {
@@ -25,8 +29,14 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
   const payload = useMemo(() => decodePaymentLink(code), [code]);
 
   const { address, initializing } = useMagic();
-  const { primaryAssets, onChainNativeEth, balanceLoading, payUsdcOnArbitrum, refreshBalance } =
-    useUniversalAccount();
+  const {
+    primaryAssets,
+    onChainNativeEth,
+    balanceLoading,
+    previewPayUsdcOnArbitrum,
+    payUsdcOnArbitrum,
+    refreshBalance,
+  } = useUniversalAccount();
   const [state, setState] = useState<PayState>({ step: "idle" });
 
   if (!payload) {
@@ -51,7 +61,7 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
 
   const amountNumber = Number(payload.amount);
   const insufficient = hasLowUsdBalance(primaryAssets, amountNumber);
-  const paying = state.step === "paying";
+  const busy = state.step === "paying" || state.step === "quoting";
   const balance = balanceDisplay({
     primaryAssets,
     onChainNativeEth,
@@ -59,10 +69,10 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
   });
 
   const handlePay = async () => {
-    setState({ step: "paying", label: "Building your cross-chain route…" });
+    setState({ step: "paying", label: "Sending across chains…" });
     try {
-      const { transactionId } = await payUsdcOnArbitrum(payload.to, payload.amount);
-      setState({ step: "done", transactionId });
+      const { transactionId, route } = await payUsdcOnArbitrum(payload.to, payload.amount);
+      setState({ step: "done", transactionId, route });
       refreshBalance();
     } catch (err) {
       console.error(err);
@@ -70,6 +80,26 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
         err instanceof Error && err.message
           ? err.message
           : "Payment failed. Nothing was charged. Try again.";
+      setState({ step: "error", message });
+    }
+  };
+
+  const handleQuote = async () => {
+    setState({ step: "quoting" });
+    try {
+      const route = await previewPayUsdcOnArbitrum(payload.to, payload.amount);
+      if (route) {
+        setState({ step: "preview", route });
+      } else {
+        // No parseable route (e.g. testnet) — pay directly like before.
+        await handlePay();
+      }
+    } catch (err) {
+      console.error(err);
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Couldn't build a route for this payment. Try again.";
       setState({ step: "error", message });
     }
   };
@@ -97,6 +127,11 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
               <p className="mt-1 text-sm text-muted">
                 {formatUsd(payload.amount)} is on its way as USDC on {SETTLEMENT_CHAIN_LABEL}.
               </p>
+              {state.route ? (
+                <div className="mt-4">
+                  <RouteCard route={state.route} amountUsd={amountNumber} compact />
+                </div>
+              ) : null}
               <a
                 href={explorerTxUrl(state.transactionId)}
                 target="_blank"
@@ -161,24 +196,48 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
                 </p>
               ) : null}
 
-              <button
-                type="button"
-                onClick={handlePay}
-                disabled={paying || insufficient || primaryAssets === null}
-                className="flex h-12 items-center justify-center gap-2 rounded-full bg-accent text-sm font-bold text-accent-foreground transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-              >
-                {paying ? (
-                  <>
-                    <InlineDog size={28} />
-                    {state.step === "paying" ? state.label : "Working…"}
-                  </>
-                ) : (
-                  `Pay ${formatUsd(payload.amount)}`
-                )}
-              </button>
+              {state.step === "preview" ? (
+                <>
+                  <RouteCard route={state.route} amountUsd={amountNumber} />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setState({ step: "idle" })}
+                      className="flex h-12 items-center justify-center rounded-full border border-border-strong px-5 text-sm font-semibold transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePay}
+                      className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-accent text-sm font-bold text-accent-foreground transition-colors hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                    >
+                      Confirm &amp; pay {formatUsd(payload.amount)}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleQuote}
+                  disabled={busy || insufficient || primaryAssets === null}
+                  className="flex h-12 items-center justify-center gap-2 rounded-full bg-accent text-sm font-bold text-accent-foreground transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                >
+                  {busy ? (
+                    <>
+                      <InlineDog size={28} />
+                      {state.step === "paying"
+                        ? state.label
+                        : "Finding your best route…"}
+                    </>
+                  ) : (
+                    `Pay ${formatUsd(payload.amount)}`
+                  )}
+                </button>
+              )}
               <p className="text-center text-xs text-muted">
-                Pays from whatever you hold, on any chain. Routing, bridging, and gas are
-                automatic. You approve once.
+                Pays from whatever you hold, on any chain. You&apos;ll see the exact route
+                and fees before anything is sent.
               </p>
             </div>
           )}
