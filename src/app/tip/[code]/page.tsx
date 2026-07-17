@@ -107,7 +107,7 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
       if (route) {
         setState({ step: "preview", route, count: tipCount, total: tipTotal });
       } else {
-        // No parseable route (e.g. testnet) — pay directly like before.
+        // No parseable route (e.g. testnet), pay directly like before.
         await handleTip(tipCount, tipTotal);
       }
     } catch (err) {
@@ -159,14 +159,16 @@ export default function TipPage({ params }: { params: Promise<{ code: string }> 
               </p>
             ) : null}
             <div className="mt-6 flex flex-col items-center gap-3">
-              <a
-                href={explorerTxUrl(state.transactionId)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-full border border-border-strong px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                View transaction ↗
-              </a>
+              {!state.transactionId.startsWith("demo-") ? (
+                <a
+                  href={explorerTxUrl(state.transactionId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-full border border-border-strong px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  View transaction ↗
+                </a>
+              ) : null}
               <Link
                 href="/"
                 className="text-xs text-muted underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

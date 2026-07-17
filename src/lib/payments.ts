@@ -45,7 +45,7 @@ export async function fetchReceivedPayments(address: string): Promise<ReceivedPa
       logs = found as EventLog[];
       break;
     } catch {
-      // Range too large for this RPC — try a narrower window.
+      // Range too large for this RPC, try a narrower window.
     }
   }
   if (!logs) return [];

@@ -28,6 +28,14 @@ import {
 } from "@/lib/config";
 import { fetchSettlementNativeEth } from "@/lib/onChainBalance";
 import { RouteSummary, summarizeRoute } from "@/lib/route";
+import {
+  IS_DEMO,
+  demoDelay,
+  demoPrimaryAssets,
+  demoRoute,
+  demoSpend,
+  demoTransactionId,
+} from "@/lib/demo";
 
 type UAContextType = {
   universalAccount: UniversalAccount | null;
@@ -92,6 +100,13 @@ export function UniversalAccountProvider({ children }: { children: ReactNode }) 
       return;
     }
     setBalanceLoading(true);
+    if (IS_DEMO) {
+      await demoDelay(600);
+      setPrimaryAssets(demoPrimaryAssets());
+      setOnChainNativeEth(null);
+      setBalanceLoading(false);
+      return;
+    }
     try {
       const [assets, nativeEth] = await Promise.all([
         universalAccount.getPrimaryAssets(),
@@ -187,11 +202,15 @@ export function UniversalAccountProvider({ children }: { children: ReactNode }) 
     [universalAccount, magic, address, signAuthorization],
   );
 
-  // Quote only — no signatures, no state changes. The quote expires quickly, so the
+  // Quote only: no signatures, no state changes. The quote expires quickly, so the
   // pay path re-creates the transaction rather than reusing this one (delegation can
   // also invalidate the quoted 7702 nonces).
   const previewPayUsdcOnArbitrum = useCallback(
     async (receiver: string, amount: string) => {
+      if (IS_DEMO) {
+        await demoDelay(1400);
+        return demoRoute(Number(amount));
+      }
       if (!universalAccount) throw new Error("Account not ready");
       const transaction = await universalAccount.createTransferTransaction({
         token: {
@@ -208,6 +227,12 @@ export function UniversalAccountProvider({ children }: { children: ReactNode }) 
 
   const payUsdcOnArbitrum = useCallback(
     async (receiver: string, amount: string) => {
+      if (IS_DEMO) {
+        await demoDelay(2600);
+        const route = demoRoute(Number(amount));
+        demoSpend(route);
+        return { transactionId: demoTransactionId(), route };
+      }
       if (!universalAccount) throw new Error("Account not ready");
       await ensureDelegated();
       const transaction = await universalAccount.createTransferTransaction({

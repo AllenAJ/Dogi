@@ -91,7 +91,7 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
       if (route) {
         setState({ step: "preview", route });
       } else {
-        // No parseable route (e.g. testnet) — pay directly like before.
+        // No parseable route (e.g. testnet), pay directly like before.
         await handlePay();
       }
     } catch (err) {
@@ -132,14 +132,16 @@ export default function PayPage({ params }: { params: Promise<{ code: string }> 
                   <RouteCard route={state.route} amountUsd={amountNumber} compact />
                 </div>
               ) : null}
-              <a
-                href={explorerTxUrl(state.transactionId)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-block rounded-full border border-border-strong px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                View transaction ↗
-              </a>
+              {!state.transactionId.startsWith("demo-") ? (
+                <a
+                  href={explorerTxUrl(state.transactionId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-block rounded-full border border-border-strong px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  View transaction ↗
+                </a>
+              ) : null}
             </div>
           ) : initializing ? (
             <div className="flex h-24 items-center justify-center">

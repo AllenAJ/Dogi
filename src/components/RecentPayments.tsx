@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { fetchReceivedPayments, timeAgo, type ReceivedPayment } from "@/lib/payments";
+import { IS_DEMO, demoDelay, demoReceivedPayments } from "@/lib/demo";
 import { formatUsd, shortAddress } from "@/lib/format";
 import { settlementExplorerTxUrl, SETTLEMENT_CHAIN_LABEL } from "@/lib/config";
 import { InlineDog } from "./Mascot";
@@ -12,13 +13,18 @@ type FeedState =
   | { status: "ready"; payments: ReceivedPayment[] }
   | { status: "error" };
 
-/** Incoming USDC on the settlement chain — the creator's "who paid me" feed. */
+/** Incoming USDC on the settlement chain: the creator's "who paid me" feed. */
 export function RecentPayments({ address }: { address: string }) {
   const [state, setState] = useState<FeedState>({ status: "loading" });
 
   const load = useCallback(async () => {
     setState({ status: "loading" });
     try {
+      if (IS_DEMO) {
+        await demoDelay(700);
+        setState({ status: "ready", payments: demoReceivedPayments() });
+        return;
+      }
       const payments = await fetchReceivedPayments(address);
       setState({ status: "ready", payments });
     } catch (err) {
@@ -75,7 +81,7 @@ export function RecentPayments({ address }: { address: string }) {
         </p>
       ) : state.payments.length === 0 ? (
         <p className="mt-4 rounded-2xl border border-dashed border-border-strong p-6 text-center text-sm text-muted">
-          Nothing yet. Share your treat page or a payment link — every payment lands
+          Nothing yet. Share your treat page or a payment link. Every payment lands
           here as USDC on {SETTLEMENT_CHAIN_LABEL}.
         </p>
       ) : (
@@ -103,14 +109,16 @@ export function RecentPayments({ address }: { address: string }) {
                   </p>
                 </div>
               </div>
-              <a
-                href={settlementExplorerTxUrl(payment.txHash)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 rounded-full border border-border-strong px-3 py-2 text-xs font-semibold transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                View ↗
-              </a>
+              {!IS_DEMO ? (
+                <a
+                  href={settlementExplorerTxUrl(payment.txHash)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 rounded-full border border-border-strong px-3 py-2 text-xs font-semibold transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  View ↗
+                </a>
+              ) : null}
             </li>
           ))}
         </ul>

@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-/** The Dogi mascot — a pixel-art dog that walks (animated GIF, 4:3 ratio). */
+/** The Dogi mascot: a pixel-art dog that walks (animated GIF, 4:3 ratio). */
 export function Mascot({
   size = 40,
   className = "",
@@ -22,7 +22,7 @@ export function Mascot({
   );
 }
 
-/** Compact inline loader — walking dog for buttons and tight spaces. */
+/** Compact inline loader: walking dog for buttons and tight spaces. */
 export function InlineDog({ size = 24, className = "" }: { size?: number; className?: string }) {
   return <Mascot size={size} className={className} />;
 }
@@ -43,7 +43,7 @@ export function LoadingDog({
   );
 }
 
-/** Dogi wordmark — mascot + name, used in nav and page shells. */
+/** Dogi wordmark: mascot + name, used in nav and page shells. */
 export function Logo({
   size = 40,
   className = "",
